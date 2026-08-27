@@ -6,36 +6,40 @@ on:
     - cron: "*/5 * * * *"
 
 jobs:
-  monitor:
+  check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check GIANTS resale
-        env:
-          TARGET_URL: "https://tradead.tixplus.jp/giants/buy/bidding/listings/2192"
+      - name: Check GIANTS 2192
         run: |
           python - <<'PY'
-          import os
           import urllib.request
+          import re
 
-          url = os.environ["TARGET_URL"]
+          url = "https://tradead.tixplus.jp/giants/buy/bidding/listings/2192"
 
           req = urllib.request.Request(
               url,
               headers={
-                  "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_6 like Mac OS X) AppleWebKit/605.1.15 Version/26.0 Mobile/15E148 Safari/604.1",
-                  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                  "User-Agent": "Mozilla/5.0"
               }
           )
 
           try:
-              with urllib.request.urlopen(req, timeout=30) as r:
-                  body = r.read().decode("utf-8", errors="ignore")
-                  print("HTTP:", r.status)
-                  print("ページ取得成功")
-                  print("listings_count:", "listings_count" in body)
-                  print("0出品表示:", "0出品" in body)
-                  print("本文先頭:", body[:3000])
+              data = urllib.request.urlopen(req, timeout=30).read().decode(
+                  "utf-8", errors="ignore"
+              )
+
+              print("HTTP取得成功")
+              print("ページサイズ:", len(data))
+              print("0出品:", "0出品" in data)
+              print("listings_count:", "listings_count" in data)
+
+              numbers = re.findall(r'.{0,80}(?:0出品|listings_count).{0,120}', data)
+
+              for x in numbers[:20]:
+                  print(x)
+
           except Exception as e:
-              print("取得エラー:", e)
+              print("取得失敗:", repr(e))
               raise
           PY
