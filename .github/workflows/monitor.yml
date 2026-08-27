@@ -8,30 +8,51 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Playwright
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+
       - name: Check GIANTS 2192
         run: |
           python - <<'PY'
-          import urllib.request
+          from playwright.sync_api import sync_playwright
 
           url = "https://tradead.tixplus.jp/giants/buy/bidding/listings/2192"
 
-          headers = {
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/142.0 Safari/537.36",
-              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-              "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
-              "Referer": "https://tradead.tixplus.jp/giants/"
-          }
+          with sync_playwright() as p:
+              browser = p.chromium.launch(headless=True)
+              page = browser.new_page(
+                  user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+                  locale="ja-JP"
+              )
 
-          req = urllib.request.Request(url, headers=headers)
+              print("ページを開いています...")
+              page.goto(url, wait_until="domcontentloaded", timeout=60000)
 
-          try:
-              with urllib.request.urlopen(req, timeout=30) as r:
-                  body = r.read().decode("utf-8", errors="ignore")
-                  print("HTTP:", r.status)
-                  print("サイズ:", len(body))
-                  print(body)
-          except Exception as e:
-              print("ERROR:", repr(e))
-              raise
+              print("初回URL:", page.url)
+
+              page.wait_for_timeout(15000)
+
+              print("最終URL:", page.url)
+              print("タイトル:", page.title())
+
+              text = page.locator("body").inner_text()
+
+              print("本文:")
+              print(text[:20000])
+
+              print("ページHTMLサイズ:", len(page.content()))
+
+              browser.close()
           PY
