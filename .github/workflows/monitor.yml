@@ -1,6 +1,7 @@
 name: Giants Monitor
 
 on:
+  push:
   workflow_dispatch:
   schedule:
     - cron: "*/5 * * * *"
@@ -8,6 +9,7 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+
     steps:
       - name: Check GIANTS 2192
         run: |
@@ -25,19 +27,21 @@ jobs:
           )
 
           try:
-              data = urllib.request.urlopen(req, timeout=30).read().decode(
-                  "utf-8", errors="ignore"
-              )
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  body = response.read().decode("utf-8", errors="ignore")
 
               print("HTTP取得成功")
-              print("ページサイズ:", len(data))
-              print("0出品:", "0出品" in data)
-              print("listings_count:", "listings_count" in data)
+              print("ページサイズ:", len(body))
+              print("0出品:", "0出品" in body)
+              print("listings_count:", "listings_count" in body)
 
-              numbers = re.findall(r'.{0,80}(?:0出品|listings_count).{0,120}', data)
+              matches = re.findall(
+                  r".{0,100}(?:0出品|listings_count).{0,150}",
+                  body
+              )
 
-              for x in numbers[:20]:
-                  print(x)
+              for match in matches[:20]:
+                  print(match)
 
           except Exception as e:
               print("取得失敗:", repr(e))
