@@ -1,7 +1,6 @@
 name: Giants Monitor
 
 on:
-  push:
   workflow_dispatch:
   schedule:
     - cron: "*/5 * * * *"
@@ -9,58 +8,30 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
-
     steps:
       - name: Check GIANTS 2192
         run: |
           python - <<'PY'
           import urllib.request
-          import re
-          import time
 
           url = "https://tradead.tixplus.jp/giants/buy/bidding/listings/2192"
 
           headers = {
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
-              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/142.0 Safari/537.36",
+              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
               "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
-              "Cache-Control": "no-cache",
-              "Pragma": "no-cache"
+              "Referer": "https://tradead.tixplus.jp/giants/"
           }
 
-          for attempt in range(3):
-              try:
-                  req = urllib.request.Request(url, headers=headers)
+          req = urllib.request.Request(url, headers=headers)
 
-                  with urllib.request.urlopen(req, timeout=30) as response:
-                      body = response.read()
-
-                  text = body.decode("utf-8", errors="ignore")
-
-                  print("HTTP取得成功")
-                  print("HTTPステータス:", response.status)
-                  print("ページサイズ:", len(body))
-                  print("0出品:", "0出品" in text)
-                  print("listings_count:", "listings_count" in text)
-
-                  if len(body) == 0:
-                      print("空レスポンス")
-                  else:
-                      for pattern in [
-                          r'listings_count.{0,100}',
-                          r'listingsCount.{0,100}',
-                          r'listing.{0,100}',
-                          r'出品.{0,100}'
-                      ]:
-                          for match in re.findall(pattern, text, re.I):
-                              print(match[:300])
-
-                  break
-
-              except Exception as e:
-                  print("取得失敗:", repr(e))
-                  if attempt < 2:
-                      time.sleep(5)
-                  else:
-                      raise
+          try:
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  body = r.read().decode("utf-8", errors="ignore")
+                  print("HTTP:", r.status)
+                  print("サイズ:", len(body))
+                  print(body)
+          except Exception as e:
+              print("ERROR:", repr(e))
+              raise
           PY
