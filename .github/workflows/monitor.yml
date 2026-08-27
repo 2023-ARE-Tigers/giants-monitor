@@ -1,6 +1,6 @@
 name: Giants Monitor
 
-"on":
+on:
   workflow_dispatch:
   schedule:
     - cron: "*/5 * * * *"
